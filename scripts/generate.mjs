@@ -7,6 +7,10 @@ const specPath = process.env.OPENAPI_SPEC_PATH
   : defaultSpecPath;
 const outputPath = resolve(process.cwd(), "src/generated/schema.ts");
 if (!existsSync(specPath)) {
+  if (existsSync(outputPath)) {
+    console.log(`[generate] OpenAPI spec not found – using existing ${outputPath} (skip)`);
+    process.exit(0);
+  }
   console.error(`[generate] OpenAPI spec not found: ${specPath}`);
   process.exit(1);
 }
