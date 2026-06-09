@@ -1,0 +1,49 @@
+{
+  "name": "@underlayer/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Underlayer API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "generate": "node ./scripts/generate.mjs",
+    "build": "npm run generate && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "example:smoke": "tsx examples/smoke.ts",
+    "prepublishOnly": "npm run build",
+    "set:version": "node ./scripts/set-version-from-api.mjs",
+    "ci": "npm run build && npm test"
+  },
+  "keywords": [
+    "underlayer",
+    "sdk",
+    "openapi",
+    "typescript"
+  ],
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "openapi-typescript": "^7.8.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.9"
+  }
+}

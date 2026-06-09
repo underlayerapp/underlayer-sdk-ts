@@ -1,0 +1,116 @@
+name: Release From Core Spec
+
+on:
+  repository_dispatch:
+    types: [sdk-spec-updated]
+  workflow_dispatch:
+    inputs:
+      api_version:
+        description: API version (e.g. 1.2.3)
+        required: true
+        type: string
+      core_repo:
+        description: Core repository owner/name
+        required: true
+        default: underlayer/core
+        type: string
+      core_ref:
+        description: Core commit SHA/ref with updated spec
+        required: true
+        type: string
+      publish:
+        description: Publish to npm
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: sdk-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Resolve payload
+        id: payload
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "api_version=${{ github.event.client_payload.api_version }}" >> "$GITHUB_OUTPUT"
+            echo "core_repo=${{ github.event.client_payload.core_repo }}" >> "$GITHUB_OUTPUT"
+            echo "core_ref=${{ github.event.client_payload.spec_commit }}" >> "$GITHUB_OUTPUT"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api_version=${{ inputs.api_version }}" >> "$GITHUB_OUTPUT"
+            echo "core_repo=${{ inputs.core_repo }}" >> "$GITHUB_OUTPUT"
+            echo "core_ref=${{ inputs.core_ref }}" >> "$GITHUB_OUTPUT"
+            echo "publish=${{ inputs.publish }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download spec from core
+        env:
+          CORE_REPO_READ_TOKEN: ${{ secrets.CORE_REPO_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p spec
+          URL="https://api.github.com/repos/${{ steps.payload.outputs.core_repo }}/contents/spec/openapi.v1.json?ref=${{ steps.payload.outputs.core_ref }}"
+          curl -fsSL -H "Authorization: Bearer $CORE_REPO_READ_TOKEN" -H "Accept: application/vnd.github+json" "$URL" \
+            | python3 -c "import sys, json, base64; d=json.load(sys.stdin); print(base64.b64decode(d['content']).decode(), end='')" \
+            > spec/openapi.v1.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Sync version
+        env:
+          API_VERSION: ${{ steps.payload.outputs.api_version }}
+        run: npm run set:version
+
+      - name: Build and test against dispatched spec
+        env:
+          OPENAPI_SPEC_PATH: ./spec/openapi.v1.json
+        run: |
+          npm run build
+          npm test
+
+      - name: Commit generated changes and tag
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git add package.json package-lock.json src/generated/schema.ts
+            git commit -m "chore: release sdk v${{ steps.payload.outputs.api_version }}"
+            git tag "v${{ steps.payload.outputs.api_version }}"
+            git push
+            git push --tags
+          fi
+
+      - name: Check npm version exists
+        id: npm_check
+        run: |
+          if npm view @underlayer/sdk@${{ steps.payload.outputs.api_version }} version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.payload.outputs.publish == 'true' && steps.npm_check.outputs.exists == 'false'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+
