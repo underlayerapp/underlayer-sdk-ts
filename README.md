@@ -51,5 +51,5 @@ npm publish --access public
 - `/.github/workflows/release-from-core.yml`: se dispara por `repository_dispatch` desde `core`, descarga el spec del commit indicado, sincroniza version y publica en npm.
 ### Secrets requeridos en el repo SDK
 - `CORE_REPO_READ_TOKEN`: PAT con scope `repo` para leer `underlayer/core`.
-- `NPM_TOKEN`: token de npm para publicar `@underlayer/sdk`.
-Hasta que no publiques la primera version, `npm install @underlayer/sdk` no estara disponible.
+- `NPM_TOKEN`: token de npm para publicar `@underlayer-app/sdk`.
+Hasta que no publiques la primera version, `npm install @underlayer-app/sdk` no estara disponible.

@@ -102,7 +102,7 @@ jobs:
       - name: Check npm version exists
         id: npm_check
         run: |
-          if npm view @underlayer/sdk@${{ steps.payload.outputs.api_version }} version >/dev/null 2>&1; then
+          if npm view @underlayer-app/sdk@${{ steps.payload.outputs.api_version }} version >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
