@@ -1,0 +1,12 @@
+# Owner por defecto para todo el repo
+* @alvarolopezsierra
+
+# Reglas más estrictas para workflows y release
+.github/workflows/* @alvarolopezsierra
+
+# Scripts de release/generación
+scripts/* @alvarolopezsierra
+
+# Cliente y tipos generados
+src/* @alvarolopezsierra
+
